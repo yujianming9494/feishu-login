@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快捷登录设置</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 36px 32px;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+        .logo {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: #3370ff;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 24px;
+        }
+        h2 {
+            font-size: 20px;
+            color: #1f2329;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .desc {
+            color: #8f959e;
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 24px;
+            line-height: 1.5;
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            color: #1f2329;
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #dee0e3;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+            outline: none;
+            margin-bottom: 16px;
+        }
+        input:focus {
+            border-color: #3370ff;
+            box-shadow: 0 0 0 2px rgba(51,112,255,0.1);
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #3370ff;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #2860e1; }
+        button:active { background: #1f4fd8; }
+        .hint {
+            text-align: center;
+            color: #c0c4cc;
+            font-size: 12px;
+            margin-top: 16px;
+        }
+        .skip {
+            text-align: center;
+            margin-top: 12px;
+        }
+        .skip a {
+            color: #8f959e;
+            font-size: 13px;
+            text-decoration: none;
+        }
+        .skip a:hover { color: #3370ff; }
+
+        /* 已保存成功的提示 */
+        .success {
+            text-align: center;
+            padding: 20px 0;
+        }
+        .success-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        .success-text {
+            color: #1f2329;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        .countdown {
+            color: #8f959e;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 首次设置页面 -->
+<div class="card" id="setupCard">
+    <div class="logo">
+        <div class="logo-icon">&#9889;</div>
+    </div>
+    <h2>快捷登录设置</h2>
+    <p class="desc">输入你的系统账号，下次打开将自动填充<br>只需设置一次</p>
+
+    <label for="accountInput">账号</label>
+    <input type="text" id="accountInput" placeholder="请输入你的系统账号" autocomplete="off">
+
+    <label for="passwordInput">密码</label>
+    <input type="password" id="passwordInput" placeholder="请输入密码（选填）" autocomplete="off">
+
+    <button onclick="saveAndGo()">保存并进入系统</button>
+
+    <div class="skip">
+        <a href="https://www.postkf.com/kf/kh/main" id="skipLink">不保存，直接进入 &rarr;</a>
+    </div>
+    <p class="hint">信息保存在本地浏览器中</p>
+</div>
+
+<!-- 保存成功提示 -->
+<div class="card" id="successCard" style="display:none;">
+    <div class="success">
+        <div class="success-icon">&#10004;</div>
+        <p class="success-text">保存成功！正在跳转...</p>
+        <p class="countdown" id="countdown"></p>
+    </div>
+</div>
+
+<script>
+    // ============ 配置区（修改这里） ============
+    var SYSTEM_URL = 'https://www.postkf.com/kf/kh/main';
+    var STORAGE_KEY = 'feishu_auto_login';
+    // ==========================================
+
+    // 检查是否已保存过
+    var saved = localStorage.getItem(STORAGE_KEY);
+
+    if (saved) {
+        try {
+            var data = JSON.parse(saved);
+            // 已保存过，直接带参数跳转
+            var redirectUrl = SYSTEM_URL + '?auto_user=' + encodeURIComponent(data.account);
+            if (data.password) {
+                redirectUrl += '&auto_pwd=' + encodeURIComponent(data.password);
+            }
+            window.location.href = redirectUrl;
+        } catch(e) {
+            // 数据异常，清除后重新设置
+            localStorage.removeItem(STORAGE_KEY);
+        }
+    }
+
+    // 保存并跳转
+    function saveAndGo() {
+        var account = document.getElementById('accountInput').value.trim();
+        var password = document.getElementById('passwordInput').value;
+
+        if (!account) {
+            alert('请输入账号');
+            document.getElementById('accountInput').focus();
+            return;
+        }
+
+        // 保存到 LocalStorage
+        var saveData = { account: account };
+        if (password) {
+            saveData.password = password;
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(saveData));
+
+        // 显示成功页面
+        document.getElementById('setupCard').style.display = 'none';
+        document.getElementById('successCard').style.display = 'block';
+
+        // 3秒后跳转
+        var sec = 3;
+        document.getElementById('countdown').textContent = sec + ' 秒后自动跳转...';
+        var timer = setInterval(function() {
+            sec--;
+            if (sec <= 0) {
+                clearInterval(timer);
+                var url = SYSTEM_URL + '?auto_user=' + encodeURIComponent(account);
+                if (password) {
+                    url += '&auto_pwd=' + encodeURIComponent(password);
+                }
+                window.location.href = url;
+            } else {
+                document.getElementById('countdown').textContent = sec + ' 秒后自动跳转...';
+            }
+        }, 1000);
+    }
+
+    // 回车键提交
+    document.getElementById('accountInput').addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') document.getElementById('passwordInput').focus();
+    });
+    document.getElementById('passwordInput').addEventListener('keyup', function(e) {
+        if (e.key === 'Enter') saveAndGo();
+    });
+</script>
+
+</body>
+</html>
